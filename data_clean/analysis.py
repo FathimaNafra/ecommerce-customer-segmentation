@@ -4,7 +4,7 @@ import seaborn as sns
 #sns.set(style="whitegrid" palette="pastel")
 import numpy as np
 
-df=pd.read_csv(r"C:\Users\LENOVO LOQ\Desktop\DSproject\ecommerce-customer-segmentation\data_clean\cleaned_purchase_data_exe.csv")
+df=pd.read_csv(r"C:\Users\iyehi\OneDrive\Desktop\DS grp pro\ecommerce-customer-segmentation\data_clean\cleaned_purchase_data_exe.csv")
 print(df.head())
 print(df.info())
 print(df.describe())
