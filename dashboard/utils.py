@@ -1,0 +1,126 @@
+import os
+import pandas as pd
+import numpy as np
+from datetime import datetime
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+
+def load_data(path):
+    """Load CSV and return a DataFrame. Raises FileNotFoundError if missing."""
+    if not os.path.exists(path):
+        raise FileNotFoundError(path)
+    df = pd.read_csv(path, parse_dates=True, infer_datetime_format=True)
+    # Try to parse common date columns
+    for col in ['order_date', 'purchase_date', 'date']:
+        if col in df.columns:
+            try:
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+            except Exception:
+                pass
+    return df
+
+
+def compute_metrics(df):
+    out = {}
+    # Best-effort metrics (use common column names)
+    cust_col = 'customer_id' if 'customer_id' in df.columns else (df.columns[0] if len(df.columns) else None)
+    price_col = None
+    for c in ['price', 'amount', 'total', 'order_value']:
+        if c in df.columns:
+            price_col = c
+            break
+    out['total_customers'] = int(df[cust_col].nunique()) if cust_col is not None else 0
+    if price_col:
+        out['total_revenue'] = float(df[price_col].sum())
+    else:
+        out['total_revenue'] = 0.0
+    if 'order_id' in df.columns and price_col:
+        out['avg_order_value'] = float(df.groupby('order_id')[price_col].sum().mean())
+    else:
+        out['avg_order_value'] = float(df[price_col].mean()) if price_col else 0.0
+    return out
+
+
+def monthly_revenue(df):
+    # Attempt to construct monthly revenue using a date + price column
+    date_col = None
+    for c in ['order_date', 'purchase_date', 'date']:
+        if c in df.columns:
+            date_col = c
+            break
+    price_col = None
+    for c in ['price', 'amount', 'total', 'order_value']:
+        if c in df.columns:
+            price_col = c
+            break
+    if date_col is None or price_col is None:
+        raise ValueError('date or price column not found')
+    df = df.copy()
+    df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+    df['order_month'] = df[date_col].dt.to_period('M').astype(str)
+    monthly = df.groupby('order_month')[price_col].sum().reset_index()
+    monthly = monthly.rename(columns={price_col: 'revenue'})
+    return monthly
+
+
+def compute_rfm(df, snapshot_date=None):
+    # Compute a simple RFM using common column names
+    if 'customer_id' not in df.columns:
+        return None
+    # Determine date column
+    date_col = None
+    for c in ['order_date', 'purchase_date', 'date']:
+        if c in df.columns:
+            date_col = c
+            break
+    # If there's no date column, we can still compute frequency & monetary
+    monetary_col = next((c for c in ['price', 'amount', 'total', 'order_value'] if c in df.columns), None)
+
+    # Work on a copy and ensure dates parsed if present
+    df = df.copy()
+    if date_col is not None:
+        df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+
+    # Snapshot date for recency calculation: day after last observed date
+    if date_col is not None and snapshot_date is None:
+        snapshot_date = df[date_col].max() + pd.Timedelta(days=1)
+
+    # Frequency: prefer unique order_id if available, otherwise count rows
+    if 'order_id' in df.columns:
+        frequency = df.groupby('customer_id')['order_id'].nunique()
+    else:
+        frequency = df.groupby('customer_id').size()
+
+    # Recency: only if date_col exists
+    if date_col is not None:
+        recency = df.groupby('customer_id')[date_col].max().apply(lambda x: (snapshot_date - x).days)
+    else:
+        # unknown recency when dates missing
+        recency = pd.Series(0, index=frequency.index)
+
+    # Monetary
+    if monetary_col:
+        monetary = df.groupby('customer_id')[monetary_col].sum()
+    else:
+        monetary = pd.Series(0.0, index=frequency.index)
+
+    # Combine into a DataFrame
+    rfm = pd.DataFrame({
+        'customer_id': frequency.index,
+        'recency': recency.reindex(frequency.index).fillna(0).astype(int),
+        'frequency': frequency.reindex(frequency.index).fillna(0).astype(int),
+        'monetary': monetary.reindex(frequency.index).fillna(0.0).astype(float),
+    }).reset_index(drop=True)
+    return rfm
+
+
+def cluster_rfm(rfm_df, n_clusters=4, random_state=42):
+    features = rfm_df[['recency','frequency','monetary']].fillna(0)
+    scaler = StandardScaler()
+    X = scaler.fit_transform(features)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
+    labels = kmeans.fit_predict(X)
+    rfm_df = rfm_df.copy()
+    rfm_df['cluster'] = labels
+    return kmeans, rfm_df
