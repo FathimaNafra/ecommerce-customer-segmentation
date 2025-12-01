@@ -105,27 +105,57 @@ except Exception as e:
 
 st.markdown("---")
 
-# RFM + clustering
+# RFM + clustering (with RFM scoring)
 st.subheader("Customer segments (RFM + KMeans)")
 rfm, rfm_clusters = compute_rfm_and_clusters(df, n_clusters=n_clusters)
 if rfm is None:
     st.info("RFM features could not be computed. Ensure your dataset has order/customer columns.")
 else:
+    # compute RFM scores and labels, merge into cluster table
+    try:
+        rfm_scores = utils.score_rfm(rfm)
+        merged = rfm_clusters.merge(rfm_scores, on='customer_id', how='left')
+    except Exception:
+        merged = rfm_clusters
+
     # show cluster counts
-    counts = rfm_clusters['cluster'].value_counts().sort_index().reset_index()
+    counts = merged['cluster'].value_counts().sort_index().reset_index()
     counts.columns = ['cluster', 'count']
     fig_counts = px.bar(counts, x='cluster', y='count', title='Customers per cluster')
     st.plotly_chart(fig_counts, use_container_width=True)
 
-    # scatter
-    fig_scatter = px.scatter(rfm_clusters, x='frequency', y='monetary', color='cluster', hover_data=['customer_id'], title='Frequency vs Monetary by cluster')
+    # scatter colored by cluster, show segment on hover if available
+    hover = ['customer_id'] + (['segment'] if 'segment' in merged.columns else [])
+    fig_scatter = px.scatter(merged, x='frequency', y='monetary', color='cluster', hover_data=hover, title='Frequency vs Monetary by cluster')
     st.plotly_chart(fig_scatter, use_container_width=True)
 
     # table & filter
     st.markdown("**Explore customers in a cluster**")
-    sel_cluster = st.selectbox("Select cluster", sorted(rfm_clusters['cluster'].unique()))
-    subset = rfm_clusters[rfm_clusters['cluster'] == sel_cluster]
-    st.dataframe(subset[['customer_id', 'recency', 'frequency', 'monetary']].sort_values('monetary', ascending=False).reset_index(drop=True))
+    sel_cluster = st.selectbox("Select cluster", sorted(merged['cluster'].unique()))
+    subset = merged[merged['cluster'] == sel_cluster]
+    display_cols = ['customer_id', 'recency', 'frequency', 'monetary']
+    if 'R_score' in merged.columns:
+        display_cols += ['R_score','F_score','M_score','RFM_score','segment']
+    visible_df = subset[display_cols].sort_values('monetary', ascending=False).reset_index(drop=True)
+    st.dataframe(visible_df)
+
+    # Summary graphs for segments or clusters (placed directly under the table)
+    group_col = 'segment' if 'segment' in merged.columns else 'cluster'
+    grouped = merged.groupby(group_col).agg(
+        customer_count=('customer_id', 'nunique')
+    ).reset_index()
+
+    # customers per segment/cluster (directly below the explore table)
+    fig_seg_count = px.bar(grouped, x=group_col, y='customer_count', title=f'Customers per {group_col}')
+    st.plotly_chart(fig_seg_count, use_container_width=True)
+
+    # CSV download for the currently selected cluster/segment (kept after the chart)
+    try:
+        csv_bytes = visible_df.to_csv(index=False).encode('utf-8')
+        fname = f"segment_cluster_{sel_cluster}.csv"
+        st.download_button(label="Download CSV for selected cluster", data=csv_bytes, file_name=fname, mime='text/csv')
+    except Exception:
+        st.warning("CSV download not available for this selection.")
 
 st.markdown("---")
 

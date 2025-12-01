@@ -124,3 +124,61 @@ def cluster_rfm(rfm_df, n_clusters=4, random_state=42):
     rfm_df = rfm_df.copy()
     rfm_df['cluster'] = labels
     return kmeans, rfm_df
+
+
+def score_rfm(rfm_df):
+    """Compute R/F/M scores (1-5) and a simple segment label.
+
+    Returns a new DataFrame with columns: `customer_id`, `R_score`, `F_score`,
+    `M_score`, `RFM_score`, `segment`.
+    """
+    if rfm_df is None:
+        return None
+    if rfm_df.shape[0] == 0:
+        return rfm_df
+
+    df = rfm_df.copy()
+
+    # Helper to compute quintile scores (1..5). For recency, lower is better.
+    def quintile_score(series, reverse=False):
+        s = series.fillna(series.median())
+        try:
+            # qcut on the raw values; handle duplicates by ranking first
+            ranks = s.rank(method='first')
+            if not reverse:
+                labels = [1,2,3,4,5]
+            else:
+                labels = [5,4,3,2,1]
+            return pd.qcut(ranks, 5, labels=labels).astype(int)
+        except Exception:
+            # fallback: linear bins on rank
+            ranks = s.rank(method='first')
+            bins = np.linspace(ranks.min(), ranks.max() + 1e-9, 6)
+            if not reverse:
+                labels = [1,2,3,4,5]
+            else:
+                labels = [5,4,3,2,1]
+            return pd.cut(ranks, bins=bins, labels=labels, include_lowest=True).astype(float).fillna(1).astype(int)
+
+    # Recency: smaller is better -> reverse=True
+    df['R_score'] = quintile_score(df['recency'], reverse=True)
+    df['F_score'] = quintile_score(df['frequency'], reverse=False)
+    df['M_score'] = quintile_score(df['monetary'], reverse=False)
+
+    df['RFM_score'] = df[['R_score','F_score','M_score']].sum(axis=1)
+
+    def label_from_score(score):
+        # Simple thresholds; tune as needed
+        if score >= 13:
+            return 'Champions'
+        if score >= 10:
+            return 'Loyal'
+        if score >= 7:
+            return 'Potential'
+        if score >= 5:
+            return 'Needs Attention'
+        return 'At Risk'
+
+    df['segment'] = df['RFM_score'].apply(label_from_score)
+
+    return df[['customer_id','R_score','F_score','M_score','RFM_score','segment']]
