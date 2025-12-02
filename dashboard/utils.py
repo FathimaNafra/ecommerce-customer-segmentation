@@ -21,15 +21,37 @@ def load_data(path):
     return df
 
 
+def _column_map(df: pd.DataFrame):
+    """Infer common column names used across functions from a variety of schemas.
+
+    Returns a dict with keys: date, customer, value, category, payment, time_on_site, clicks.
+    Missing keys will have value None.
+    """
+    cols = df.columns.str.lower().tolist()
+    def first_match(options):
+        for name in options:
+            if name in cols:
+                # return original cased name
+                return df.columns[cols.index(name)]
+        return None
+
+    return {
+        'date': first_match(['order_date', 'purchase_date', 'date']),
+        'customer': first_match(['customer_id', 'customerid', 'customer']),
+        'value': first_match(['value [usd]', 'value usd', 'value_usd', 'price', 'amount', 'total', 'order_value']),
+        'category': first_match(['product_category', 'category']),
+        'payment': first_match(['payment_method', 'payment', 'paymentmode']),
+        'time_on_site': first_match(['time_on_site [minutes]', 'time_on_site', 'time_spent_minutes']),
+        'clicks': first_match(['clicks_in_site', 'clicks'])
+    }
+
+
 def compute_metrics(df):
     out = {}
     # Best-effort metrics (use common column names)
-    cust_col = 'customer_id' if 'customer_id' in df.columns else (df.columns[0] if len(df.columns) else None)
-    price_col = None
-    for c in ['price', 'amount', 'total', 'order_value']:
-        if c in df.columns:
-            price_col = c
-            break
+    cmap = _column_map(df)
+    cust_col = cmap['customer'] if cmap['customer'] else (df.columns[0] if len(df.columns) else None)
+    price_col = cmap['value']
     out['total_customers'] = int(df[cust_col].nunique()) if cust_col is not None else 0
     if price_col:
         out['total_revenue'] = float(df[price_col].sum())
@@ -44,16 +66,9 @@ def compute_metrics(df):
 
 def monthly_revenue(df):
     # Attempt to construct monthly revenue using a date + price column
-    date_col = None
-    for c in ['order_date', 'purchase_date', 'date']:
-        if c in df.columns:
-            date_col = c
-            break
-    price_col = None
-    for c in ['price', 'amount', 'total', 'order_value']:
-        if c in df.columns:
-            price_col = c
-            break
+    cmap = _column_map(df)
+    date_col = cmap['date']
+    price_col = cmap['value']
     if date_col is None or price_col is None:
         raise ValueError('date or price column not found')
     df = df.copy()
@@ -66,16 +81,12 @@ def monthly_revenue(df):
 
 def compute_rfm(df, snapshot_date=None):
     # Compute a simple RFM using common column names
-    if 'customer_id' not in df.columns:
+    cmap = _column_map(df)
+    if cmap['customer'] is None:
         return None
-    # Determine date column
-    date_col = None
-    for c in ['order_date', 'purchase_date', 'date']:
-        if c in df.columns:
-            date_col = c
-            break
-    # If there's no date column, we can still compute frequency & monetary
-    monetary_col = next((c for c in ['price', 'amount', 'total', 'order_value'] if c in df.columns), None)
+    # Determine date and monetary columns
+    date_col = cmap['date']
+    monetary_col = cmap['value']
 
     # Work on a copy and ensure dates parsed if present
     df = df.copy()
@@ -182,3 +193,57 @@ def score_rfm(rfm_df):
     df['segment'] = df['RFM_score'].apply(label_from_score)
 
     return df[['customer_id','R_score','F_score','M_score','RFM_score','segment']]
+
+
+# -----------------------------
+# Additional helpers for dashboard charts
+# -----------------------------
+def category_sales(df):
+    """Return total sales per product category.
+    Columns: category, sales
+    """
+    cmap = _column_map(df)
+    cat, val = cmap['category'], cmap['value']
+    if cat is None or val is None:
+        return pd.DataFrame(columns=['category','sales'])
+    out = df.groupby(cat)[val].sum().reset_index().rename(columns={cat:'category', val:'sales'})
+    out = out.sort_values('sales', ascending=False)
+    return out
+
+
+def payment_method_stats(df):
+    """Return counts and sales per payment method.
+    Columns: payment_method, count, sales
+    """
+    cmap = _column_map(df)
+    pay, val = cmap['payment'], cmap['value']
+    if pay is None:
+        return pd.DataFrame(columns=['payment_method','count','sales'])
+    counts = df[pay].value_counts().rename_axis('payment_method').reset_index(name='count')
+    if val is not None:
+        sales = df.groupby(pay)[val].sum().reset_index().rename(columns={val:'sales', pay:'payment_method'})
+        out = counts.merge(sales, on='payment_method', how='left').fillna({'sales':0})
+    else:
+        out = counts
+        out['sales'] = 0.0
+    return out
+
+
+def correlation_inputs(df):
+    """Return a dataframe with numeric inputs for correlation heatmap if available."""
+    cmap = _column_map(df)
+    cols = []
+    rename = {}
+    if cmap['value'] is not None:
+        cols.append(cmap['value']); rename[cmap['value']] = 'value_usd'
+    if cmap['time_on_site'] is not None:
+        cols.append(cmap['time_on_site']); rename[cmap['time_on_site']] = 'time_on_site_min'
+    if cmap['clicks'] is not None:
+        cols.append(cmap['clicks']); rename[cmap['clicks']] = 'clicks'
+    if not cols:
+        return pd.DataFrame()
+    out = df[cols].copy()
+    for c in out.columns:
+        out[c] = pd.to_numeric(out[c], errors='coerce')
+    out = out.rename(columns=rename)
+    return out

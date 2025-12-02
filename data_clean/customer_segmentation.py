@@ -20,13 +20,9 @@ def load_and_clean(data_path):
     print("Before cleaning:", df.shape)
 
     # Basic cleaning
-    df = df.dropna(subset=["InvoiceDate", "CustomerID"])
-    df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"], errors="coerce")
-    df = df[df["Quantity"] > 0]
-    df = df[df["Price"] > 0]
-
-    # Total price
-    df["Total"] = df["Quantity"] * df["Price"]
+    df = df.dropna(subset=["date", "customer_id"])
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df[df["value [USD]"] > 0]
 
     print("After cleaning:", df.shape)
     return df
@@ -36,12 +32,12 @@ def load_and_clean(data_path):
 #  RFM CALCULATION
 # -----------------------------
 def calculate_rfm(df):
-    snapshot_date = df["InvoiceDate"].max() + pd.Timedelta(days=1)
+    snapshot_date = df["date"].max() + pd.Timedelta(days=1)
 
-    RFM = df.groupby("CustomerID").agg({
-        "InvoiceDate": lambda x: (snapshot_date - x.max()).days,
-        "InvoiceNo": "count",
-        "Total": "sum"
+    RFM = df.groupby("customer_id").agg({
+        "date": lambda x: (snapshot_date - x.max()).days,
+        "customer_id": "count",
+        "value [USD]": "sum"
     })
 
     RFM.columns = ["Recency", "Frequency", "Monetary"]
@@ -128,5 +124,5 @@ def customer_segmentation(data_path):
 
 
 
-data_path = r"c:\Users\iyehi\OneDrive\Desktop\ecommerce.csv"
+data_path = r"c:\Users\iyehi\OneDrive\Desktop\DS grp pro\ecommerce-customer-segmentation\data_clean\cleaned_purchase_data_exe.csv"
 customer_segmentation(data_path)

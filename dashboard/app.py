@@ -105,6 +105,28 @@ except Exception as e:
 
 st.markdown("---")
 
+# Commerce insights
+st.subheader("Commerce insights")
+cols_ci = st.columns(2)
+try:
+    cat_sales = utils.category_sales(df)
+    if not cat_sales.empty:
+        fig_cat = px.bar(cat_sales, x='category', y='sales', title='Sales by product category')
+        fig_cat.update_layout(xaxis_title='Category', yaxis_title='Sales')
+        cols_ci[0].plotly_chart(fig_cat, use_container_width=True)
+except Exception:
+    pass
+
+try:
+    pay_stats = utils.payment_method_stats(df)
+    if not pay_stats.empty:
+        fig_pay = px.pie(pay_stats, names='payment_method', values='count', title='Payment method distribution')
+        cols_ci[1].plotly_chart(fig_pay, use_container_width=True)
+except Exception:
+    pass
+
+st.markdown("---")
+
 # RFM + clustering (with RFM scoring)
 st.subheader("Customer segments (RFM + KMeans)")
 rfm, rfm_clusters = compute_rfm_and_clusters(df, n_clusters=n_clusters)
@@ -158,6 +180,32 @@ else:
         st.warning("CSV download not available for this selection.")
 
 st.markdown("---")
+
+# Behavior & relationships
+st.subheader("Behavior & relationships")
+
+cols_beh = st.columns(2)
+try:
+    cmap_time = next((c for c in df.columns if c.lower() in ['time_on_site [minutes]','time_on_site','time_spent_minutes']), None)
+    cmap_clicks = next((c for c in df.columns if c.lower() in ['clicks_in_site','clicks']), None)
+    cmap_value = next((c for c in df.columns if c.lower() in ['value [usd]','value usd','value_usd','price','amount','total','order_value']), None)
+    if cmap_time is not None:
+        fig_time = px.histogram(df, x=cmap_time, nbins=30, title='Time on site (minutes) distribution')
+        cols_beh[0].plotly_chart(fig_time, use_container_width=True)
+    if cmap_clicks is not None:
+        fig_clicks = px.histogram(df, x=cmap_clicks, nbins=30, title='Clicks in site distribution')
+        cols_beh[1].plotly_chart(fig_clicks, use_container_width=True)
+except Exception:
+    pass
+
+try:
+    corr_df = utils.correlation_inputs(df)
+    if not corr_df.empty:
+        corr = corr_df.corr()
+        fig_corr = px.imshow(corr, text_auto=True, aspect='auto', color_continuous_scale='RdBu', origin='lower', title='Correlation heatmap')
+        st.plotly_chart(fig_corr, use_container_width=True)
+except Exception:
+    pass
 
 # Optional raw sample
 if show_sample:
