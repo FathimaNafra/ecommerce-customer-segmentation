@@ -1,0 +1,114 @@
+================================================================================
+CUSTOMER SEGMENTATION ANALYSIS REPORT
+Generated: 2025-11-14 20:33:12
+================================================================================
+
+EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+Total Customers Analyzed: 19774
+Number of Segments: 6
+Total Revenue: $5,081,015.83
+Average Customer Value: $256.95
+
+SEGMENT DETAILS
+--------------------------------------------------------------------------------
+
+Segment: LOYAL CUSTOMERS
+Description: Consistent buyers with high spending - Great for retention programs
+Customer Count: 1464 (7.4%)
+Segment Revenue: $483,002.88
+Average Recency: 6.7 days
+Average Frequency: 2.0 purchases
+Average Monetary: $329.92
+Average Purchase Value: $162.72
+
+RECOMMENDED ACTIONS:
+  • Implement loyalty rewards program
+  • Send personalized product recommendations
+  • Encourage referrals with incentives
+
+--------------------------------------------------------------------------------
+
+Segment: AT RISK
+Description: Previously good customers who haven't purchased recently - Need re-engagement
+Customer Count: 1942 (9.8%)
+Segment Revenue: $1,202,486.40
+Average Recency: 6.5 days
+Average Frequency: 1.0 purchases
+Average Monetary: $619.20
+Average Purchase Value: $619.20
+
+RECOMMENDED ACTIONS:
+  • Send win-back campaigns with special offers
+  • Survey to understand why they left
+  • Limited-time discounts to re-engage
+
+--------------------------------------------------------------------------------
+
+Segment: NEW CUSTOMERS
+Description: Recent buyers with few purchases - Focus on onboarding and retention
+Customer Count: 6186 (31.3%)
+Segment Revenue: $897,403.02
+Average Recency: 3.0 days
+Average Frequency: 1.0 purchases
+Average Monetary: $145.07
+Average Purchase Value: $145.07
+
+RECOMMENDED ACTIONS:
+  • Welcome email series with product education
+  • First-time buyer incentives for repeat purchase
+  • Gather feedback on initial experience
+
+--------------------------------------------------------------------------------
+
+Segment: CHAMPIONS
+Description: Best customers - Buy frequently, spend the most, and purchased recently
+Customer Count: 865 (4.4%)
+Segment Revenue: $832,934.45
+Average Recency: 4.0 days
+Average Frequency: 2.4 purchases
+Average Monetary: $962.93
+Average Purchase Value: $423.11
+
+RECOMMENDED ACTIONS:
+  • Reward with exclusive perks and VIP treatment
+  • Use as brand ambassadors and request reviews
+  • Offer early access to new products
+
+--------------------------------------------------------------------------------
+
+Segment: AT RISK
+Description: Previously good customers who haven't purchased recently - Need re-engagement
+Customer Count: 7165 (36.2%)
+Segment Revenue: $998,299.45
+Average Recency: 8.0 days
+Average Frequency: 1.0 purchases
+Average Monetary: $139.33
+Average Purchase Value: $139.33
+
+RECOMMENDED ACTIONS:
+  • Send win-back campaigns with special offers
+  • Survey to understand why they left
+  • Limited-time discounts to re-engage
+
+--------------------------------------------------------------------------------
+
+Segment: OCCASIONAL BUYERS
+Description: Average customers - Opportunity for targeted campaigns
+Customer Count: 2152 (10.9%)
+Segment Revenue: $666,904.80
+Average Recency: 2.4 days
+Average Frequency: 2.1 purchases
+Average Monetary: $309.90
+Average Purchase Value: $146.73
+
+RECOMMENDED ACTIONS:
+  • Regular email campaigns with targeted offers
+  • Cross-sell and upsell relevant products
+  • Increase engagement with content marketing
+
+--------------------------------------------------------------------------------
+
+================================================================================
+END OF REPORT
+================================================================================

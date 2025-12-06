@@ -1,0 +1,7 @@
+cluster,Avg_Recency,Avg_Frequency,Avg_Monetary,Avg_Purchase_Value,Avg_Time_Site,Avg_Clicks,Customer_Count,Segment_Name,Description
+0,6.72,2.03,329.92,162.72,25.2,13.91,1464,Loyal Customers,Consistent buyers with high spending - Great for retention programs
+1,6.51,1.0,619.2,619.2,65.98,36.53,1942,At Risk,Previously good customers who haven't purchased recently - Need re-engagement
+2,2.97,1.0,145.07,145.07,131.98,13.22,6186,New Customers,Recent buyers with few purchases - Focus on onboarding and retention
+3,3.96,2.44,962.93,423.11,79.37,27.03,865,Champions,"Best customers - Buy frequently, spend the most, and purchased recently"
+4,7.98,1.0,139.33,139.33,24.16,12.88,7165,At Risk,Previously good customers who haven't purchased recently - Need re-engagement
+5,2.42,2.14,309.9,146.73,103.57,13.26,2152,Occasional Buyers,Average customers - Opportunity for targeted campaigns
